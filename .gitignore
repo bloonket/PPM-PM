@@ -1,3 +1,31 @@
+# macOS metadata
+.DS_Store
+
+# Xcode
+*.xcuserdatad
+*.xcuserdata
+DerivedData/
+*.xcworkspace/
+
+# Swift Package Manager
+.build/
+.swiftpm/
+Packages/
+
+# Logs
+*.log
+
+# Test Artifacts
+*.xcresult
+
+# Configuration files
+.netrc
+.env
+
+# Temporary files
+*.swp
+*.swo
+*~
 .DS_Store
 /.build
 /Packages
