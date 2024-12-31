@@ -23,7 +23,7 @@ final class TrieTests: XCTestCase {
         XCTAssertEqual(trie.getFrequency(symbol: "c", context: ["b", "c"]), 0)
         
         let symbols = trie.getSymbols(context: ["b", "c"])
-        XCTAssertEqual(symbols, ["a", "b"]) // Sorted by frequency
+        XCTAssertEqual(symbols, ["a", "b"]) // Sorted by frequencūy
         
         trie.reset()
         XCTAssertEqual(trie.getFrequency(symbol: "a", context: ["b", "c"]), 0)
