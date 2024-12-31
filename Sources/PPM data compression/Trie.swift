@@ -7,21 +7,16 @@
 
 
 protocol Trie {
-    associatedtype Symbol: Hashable // Support any type of symbol (e.g., Character, String)
+    // Insert a symbol with context
+    func insert(symbol: Character, context: [Character])
 
-    // Insert a symbol into the trie, given its context
-    func insert(symbol: Symbol, context: [Symbol])
+    // Get the frequency of a symbol within a context
+    func getFrequency(symbol: Character, context: [Character]) -> Int
 
-    // Get the frequency of a symbol in a given context
-    func getFrequency(symbol: Symbol, context: [Symbol]) -> Int
+    // Get symbols in a given context
+    func getSymbols(context: [Character]) -> [Character]
 
-    // Get all symbols in the given context, sorted by relevance (if applicable)
-    func getSymbols(context: [Symbol]) -> [Symbol]
-
-    // Update the frequency of a symbol in a context
-    func updateFrequency(symbol: Symbol, context: [Symbol])
-
-    // Reset the trie (optional, useful for testing or reinitialization)
+    // Reset the trie
     func reset()
 }
 

@@ -5,19 +5,20 @@
 //  Created by Pirita Minkkinen on 12/31/24.
 //
 
-class BasicTrie<Symbol: Hashable>: Trie {
+class BasicTrie: Trie {
     class Node {
-        var children: [Symbol: Node] = [:]
-        var frequencies: [Symbol: Int] = [:]
+        var children: [Character: Node] = [:]
+        var frequencies: [Character: Int] = [:]
 
-        func incrementFrequency(for symbol: Symbol) {
+        func incrementFrequency(for symbol: Character) {
             frequencies[symbol, default: 0] += 1
         }
     }
 
     private let root = Node()
 
-    func insert(symbol: Symbol, context: [Symbol]) {
+    // Insert a symbol into the trie with its context
+    func insert(symbol: Character, context: [Character]) {
         var currentNode = root
         for ctxSymbol in context {
             if let childNode = currentNode.children[ctxSymbol] {
@@ -31,7 +32,8 @@ class BasicTrie<Symbol: Hashable>: Trie {
         currentNode.incrementFrequency(for: symbol)
     }
 
-    func getFrequency(symbol: Symbol, context: [Symbol]) -> Int {
+    // Get the frequency of a symbol in a given context
+    func getFrequency(symbol: Character, context: [Character]) -> Int {
         var currentNode = root
         for ctxSymbol in context {
             guard let childNode = currentNode.children[ctxSymbol] else {
@@ -42,7 +44,8 @@ class BasicTrie<Symbol: Hashable>: Trie {
         return currentNode.frequencies[symbol, default: 0]
     }
 
-    func getSymbols(context: [Symbol]) -> [Symbol] {
+    // Retrieve all symbols in the given context, sorted by frequency
+    func getSymbols(context: [Character]) -> [Character] {
         var currentNode = root
         for ctxSymbol in context {
             guard let childNode = currentNode.children[ctxSymbol] else {
@@ -50,20 +53,12 @@ class BasicTrie<Symbol: Hashable>: Trie {
             }
             currentNode = childNode
         }
-        return currentNode.frequencies.keys.sorted { currentNode.frequencies[$0]! > currentNode.frequencies[$1]! }
-    }
-
-    func updateFrequency(symbol: Symbol, context: [Symbol]) {
-        var currentNode = root
-        for ctxSymbol in context {
-            guard let childNode = currentNode.children[ctxSymbol] else {
-                return // Context not found
-            }
-            currentNode = childNode
+        return currentNode.frequencies.keys.sorted {
+            currentNode.frequencies[$0]! > currentNode.frequencies[$1]!
         }
-        currentNode.incrementFrequency(for: symbol)
     }
 
+    // Reset the trie by clearing all nodes
     func reset() {
         root.children.removeAll()
         root.frequencies.removeAll()

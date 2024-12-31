@@ -9,74 +9,33 @@ import XCTest
 
 @testable import PPM_data_compression
 
+import XCTest
+
 final class TrieTests: XCTestCase {
 
-    func testInsertAndContains() {
-        let trie = Trie()
+    func testTrieProtocolImplementation<T: Trie>(trie: T) where T: AnyObject {
+        trie.insert(symbol: "a", context: ["b", "c"])
+        trie.insert(symbol: "b", context: ["b", "c"])
+        trie.insert(symbol: "a", context: ["b", "c"])
         
-        // Insert words
-        trie.insert(val: "apple")
-        trie.insert(val: "app")
+        XCTAssertEqual(trie.getFrequency(symbol: "a", context: ["b", "c"]), 2)
+        XCTAssertEqual(trie.getFrequency(symbol: "b", context: ["b", "c"]), 1)
+        XCTAssertEqual(trie.getFrequency(symbol: "c", context: ["b", "c"]), 0)
         
-        // Check contains
-        XCTAssertTrue(trie.contains(val: "apple"))
-        XCTAssertTrue(trie.contains(val: "app"))
-        XCTAssertFalse(trie.contains(val: "appl"))
-        XCTAssertFalse(trie.contains(val: "banana"))
+        let symbols = trie.getSymbols(context: ["b", "c"])
+        XCTAssertEqual(symbols, ["a", "b"]) // Sorted by frequency
+        
+        trie.reset()
+        XCTAssertEqual(trie.getFrequency(symbol: "a", context: ["b", "c"]), 0)
     }
 
-    func testPrefixSearch() {
-        let trie = Trie()
-        
-        // Insert words
-        trie.insert(val: "hello")
-        trie.insert(val: "help")
-        trie.insert(val: "hell")
-        
-        // Check prefixes
-        XCTAssertTrue(trie.contains(prefix: "he"))
-        XCTAssertTrue(trie.contains(prefix: "hell"))
-        XCTAssertFalse(trie.contains(prefix: "hey"))
+    func testBasicTrieConformsToProtocol() {
+        let trie = BasicTrie()
+        testTrieProtocolImplementation(trie: trie)
     }
     
-    func testFindWordsWithPrefix() {
-        let trie = Trie()
-        
-        // Insert words
-        trie.insert(val: "cat")
-        trie.insert(val: "caterpillar")
-        trie.insert(val: "catch")
-        
-        // Find words with prefix
-        let words = trie.find(prefix: "cat")
-        XCTAssertTrue(words.contains("cat"))
-        XCTAssertTrue(words.contains("caterpillar"))
-        XCTAssertTrue(words.contains("catch"))
-        XCTAssertFalse(words.contains("dog"))
-    }
-    
-    func testEdgeCases() {
-        let trie = Trie()
-        
-        // Insert empty string
-        trie.insert(val: "")
-        XCTAssertFalse(trie.contains(val: ""))
-        
-        // Insert special characters
-        trie.insert(val: "123")
-        trie.insert(val: "!@#")
-        XCTAssertTrue(trie.contains(val: "123"))
-        XCTAssertTrue(trie.contains(val: "!@#"))
-    }
-    
-    func testDuplicateInsertions() {
-        let trie = Trie()
-        
-        // Insert duplicates
-        trie.insert(val: "test")
-        trie.insert(val: "test")
-        
-        // Check contains
-        XCTAssertTrue(trie.contains(val: "test"))
+    func testPMTrieConformsToProtocol() {
+        let trie = PMTrie()
+        testTrieProtocolImplementation(trie: trie)
     }
 }

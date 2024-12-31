@@ -5,98 +5,71 @@
 //  Created by Pirita Minkkinen on 12/31/24.
 //
 
-class PMTrie<Symbol: Hashable>: Trie {
+class PMTrie {
     class Node {
-        var children: [Symbol: Node] = [:]
-        var frequencies: [Symbol: Int] = [:]
-        var weights: [Symbol: Double] = [:] // Additional feature for PPM-PM
+        var children: [Node?]
+        var frequencies: [Int]
 
-        func incrementFrequency(for symbol: Symbol) {
-            frequencies[symbol, default: 0] += 1
-        }
-
-        func updateWeight(for symbol: Symbol, multiplier: Double) {
-            weights[symbol, default: 1.0] *= multiplier
+        init(alphabetSize: Int?) {
+            self.children = Array<Node?>(repeating: nil, count: alphabetSize ?? 0)
+            self.frequencies = Array<Int>(repeating: 0, count: alphabetSize ?? 0)
         }
     }
 
-    private let root = Node()
-    private let dropOffThreshold: Double
-    private let maxSymbolsToTest: Int
+    private let root: Node
+    private let alphabetSize: Int?
+    private let baseScalarValue: UInt32
 
-    init(dropOffThreshold: Double = 0.5, maxSymbolsToTest: Int = 10) {
-        self.dropOffThreshold = dropOffThreshold
-        self.maxSymbolsToTest = maxSymbolsToTest
+    init(scalarRange: ClosedRange<UnicodeScalar>? = nil) {
+        if let scalarRange = scalarRange{
+            self.alphabetSize = Int(scalarRange.upperBound.value - scalarRange.lowerBound.value + 1)
+            self.baseScalarValue = scalarRange.lowerBound.value
+        }
+        else{
+            alphabetSize = nil
+            baseScalarValue = ?
+        }
+        self.root = Node(alphabetSize: alphabetSize)
     }
 
-    func insert(symbol: Symbol, context: [Symbol]) {
+    func insert(symbol: Character, context: [Character]) {
+        guard let symbolScalar = symbol.unicodeScalars.first?.value else { return }
+        let symbolIndex = Int(symbolScalar - baseScalarValue)
+        let contextIndices = context.compactMap { $0.unicodeScalars.first?.value }.map { Int($0 - baseScalarValue) }
+
+        guard symbolIndex >= 0 && symbolIndex < alphabetSize else { return } // Validate symbol index
+        insert(index: symbolIndex, context: contextIndices)
+    }
+
+    private func insert(index symbolIndex: Int, context: [Int]) {
         var currentNode = root
-        for ctxSymbol in context {
-            if let childNode = currentNode.children[ctxSymbol] {
-                currentNode = childNode
-            } else {
-                let newNode = Node()
-                currentNode.children[ctxSymbol] = newNode
-                currentNode = newNode
+        for ctxIndex in context {
+            guard ctxIndex >= 0 && ctxIndex < alphabetSize else { return } // Validate context index
+            if currentNode.children[ctxIndex] == nil {
+                currentNode.children[ctxIndex] = Node(alphabetSize: alphabetSize)
             }
+            currentNode = currentNode.children[ctxIndex]!
         }
-        currentNode.incrementFrequency(for: symbol)
+        currentNode.frequencies[symbolIndex] += 1
     }
 
-    func getFrequency(symbol: Symbol, context: [Symbol]) -> Int {
+    func getFrequency(symbol: Character, context: [Character]) -> Int {
+        guard let symbolScalar = symbol.unicodeScalars.first?.value else { return 0 }
+        let symbolIndex = Int(symbolScalar - baseScalarValue)
+        let contextIndices = context.compactMap { $0.unicodeScalars.first?.value }.map { Int($0 - baseScalarValue) }
+
+        guard symbolIndex >= 0 && symbolIndex < alphabetSize else { return 0 } // Validate symbol index
+        return getFrequency(index: symbolIndex, context: contextIndices)
+    }
+
+    private func getFrequency(index symbolIndex: Int, context: [Int]) -> Int {
         var currentNode = root
-        for ctxSymbol in context {
-            guard let childNode = currentNode.children[ctxSymbol] else {
-                return 0 // Context not found
+        for ctxIndex in context {
+            guard ctxIndex >= 0 && ctxIndex < alphabetSize, let childNode = currentNode.children[ctxIndex] else {
+                return 0
             }
             currentNode = childNode
         }
-        return currentNode.frequencies[symbol, default: 0]
-    }
-
-    func getSymbols(context: [Symbol]) -> [Symbol] {
-        var currentNode = root
-        for ctxSymbol in context {
-            guard let childNode = currentNode.children[ctxSymbol] else {
-                return [] // Context not found
-            }
-            currentNode = childNode
-        }
-
-        // Apply drop-off mechanism
-        let sortedSymbols = currentNode.frequencies.keys.sorted { currentNode.frequencies[$0]! > currentNode.frequencies[$1]! }
-        var relevantSymbols: [Symbol] = []
-        var previousFrequency: Int? = nil
-
-        for symbol in sortedSymbols {
-            guard let currentFrequency = currentNode.frequencies[symbol] else { continue }
-            if let prev = previousFrequency {
-                let dropOff = Double(prev - currentFrequency) / Double(prev)
-                if dropOff > dropOffThreshold {
-                    break
-                }
-            }
-            relevantSymbols.append(symbol)
-            previousFrequency = currentFrequency
-        }
-
-        return Array(relevantSymbols.prefix(maxSymbolsToTest))
-    }
-
-    func updateFrequency(symbol: Symbol, context: [Symbol]) {
-        var currentNode = root
-        for ctxSymbol in context {
-            guard let childNode = currentNode.children[ctxSymbol] else {
-                return // Context not found
-            }
-            currentNode = childNode
-        }
-        currentNode.incrementFrequency(for: symbol)
-    }
-
-    func reset() {
-        root.children.removeAll()
-        root.frequencies.removeAll()
-        root.weights.removeAll()
+        return currentNode.frequencies[symbolIndex]
     }
 }
