@@ -8,10 +8,12 @@
 //TODO: check the approach for any lenght operations
 class PMTrie: Trie {
     class Node {
+        var topFrecuency: Int
         var children: [Node?]
         var frequencies: [Int]
 
         init(alphabetSize: Int?) {
+            topFrecuency = 0
             if let alphabetSize = alphabetSize {
                 // Pre-allocate arrays for known alphabet size
                 self.children = Array<Node?>(repeating: nil, count: alphabetSize)
