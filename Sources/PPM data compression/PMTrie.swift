@@ -5,6 +5,7 @@
 //  Created by Pirita Minkkinen on 12/31/24.
 //
 
+//TODO: check the approach for any lenght operations
 class PMTrie: Trie {
     class Node {
         var children: [Node?]
@@ -52,9 +53,11 @@ class PMTrie: Trie {
         self.root = Node(alphabetSize: alphabetSize)
     }
 
-    func insert(symbol: Character, context: [Character]) {
+    func insert(symbol: Character, context: [Character]) throws {
         // Convert the symbol to its index
-        guard let symbolScalar = symbol.unicodeScalars.first?.value else { return }
+        guard let symbolScalar = symbol.unicodeScalars.first?.value else {
+            throw PMTrieError.invalidSymbol(symbol) // Throw error for invalid symbol
+        }
         let symbolIndex = Int(symbolScalar - baseScalarValue)
         
         // Convert the context characters to indices
@@ -62,35 +65,34 @@ class PMTrie: Trie {
         
         // Validate symbol index
         if let alphabetSize = alphabetSize {
-            guard symbolIndex >= 0 && symbolIndex < alphabetSize else { return }
+            guard symbolIndex >= 0 && symbolIndex < alphabetSize else {
+                throw PMTrieError.invalidSymbol(symbol) // Throw error for out-of-bounds symbol
+            }
         }
         
-        // Iterative insertion
+        // Iterative insertion logic (as per earlier implementation)
         var currentNode = root
         for ctxIndex in contextIndices {
-            // Ensure context index is valid
             if let alphabetSize = alphabetSize {
-                guard ctxIndex >= 0 && ctxIndex < alphabetSize else { return }
-            }
-            
-            // Ensure capacity if alphabet size is dynamic
-            if alphabetSize == nil {
+                guard ctxIndex >= 0 && ctxIndex < alphabetSize else {
+                    throw PMTrieError.invalidContext(context) // Throw error for invalid context index
+                }
+            } else {
                 currentNode.ensureCapacity(for: ctxIndex)
             }
-            
-            // Traverse or create the next node
+
             if currentNode.children[ctxIndex] == nil {
                 currentNode.children[ctxIndex] = Node(alphabetSize: alphabetSize)
             }
             currentNode = currentNode.children[ctxIndex]!
         }
-        
-        // Insert the symbol at the final node
+
         if alphabetSize == nil {
             currentNode.ensureCapacity(for: symbolIndex)
         }
-        currentNode.frequencies[symbolIndex] += 1
+        currentNode.frequencies[symbolIndex] += 1 //
     }
+
 
 
     func getFrequency(symbol: Character, context: [Character]) -> Int {
@@ -174,3 +176,49 @@ class PMTrie: Trie {
         root.reset()
     }
 }
+
+enum PMTrieError: Error {
+    case invalidSymbol(Character)
+    case invalidContext([Character])
+}
+
+//MARK: - Code for asserting in insert instead , for later to decide how the errors are best handled
+/*
+ func insert(symbol: Character, context: [Character]) {
+     // Convert the symbol to its index
+     guard let symbolScalar = symbol.unicodeScalars.first?.value else {
+         assertionFailure("Invalid symbol: \(symbol)")
+         return
+     }
+     let symbolIndex = Int(symbolScalar - baseScalarValue)
+     
+     // Convert the context characters to indices
+     let contextIndices = context.compactMap { $0.unicodeScalars.first?.value }.map { Int($0 - baseScalarValue) }
+     
+     // Validate symbol index
+     if let alphabetSize = alphabetSize {
+         assert(symbolIndex >= 0 && symbolIndex < alphabetSize, "Invalid symbol: \(symbol)")
+     }
+     
+     // Iterative insertion logic (as per earlier implementation)
+     var currentNode = root
+     for ctxIndex in contextIndices {
+         if let alphabetSize = alphabetSize {
+             assert(ctxIndex >= 0 && ctxIndex < alphabetSize, "Invalid context index: \(ctxIndex) in context \(context)")
+         } else {
+             currentNode.ensureCapacity(for: ctxIndex)
+         }
+
+         if currentNode.children[ctxIndex] == nil {
+             currentNode.children[ctxIndex] = Node(alphabetSize: alphabetSize)
+         }
+         currentNode = currentNode.children[ctxIndex]!
+     }
+
+     if alphabetSize == nil {
+         currentNode.ensureCapacity(for: symbolIndex)
+     }
+     currentNode.frequencies[symbolIndex] += 1
+ }
+
+ */
