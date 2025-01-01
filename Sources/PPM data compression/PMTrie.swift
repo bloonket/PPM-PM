@@ -53,47 +53,79 @@ class PMTrie: Trie {
     }
 
     func insert(symbol: Character, context: [Character]) {
+        // Convert the symbol to its index
         guard let symbolScalar = symbol.unicodeScalars.first?.value else { return }
         let symbolIndex = Int(symbolScalar - baseScalarValue)
+        
+        // Convert the context characters to indices
         let contextIndices = context.compactMap { $0.unicodeScalars.first?.value }.map { Int($0 - baseScalarValue) }
-
+        
+        // Validate symbol index
         if let alphabetSize = alphabetSize {
-            guard symbolIndex >= 0 && symbolIndex < alphabetSize else { return } // Validate symbol index
+            guard symbolIndex >= 0 && symbolIndex < alphabetSize else { return }
         }
-        insert(index: symbolIndex, context: contextIndices)
-    }
-
-    private func insert(index symbolIndex: Int, context: [Int]) {
+        
+        // Iterative insertion
         var currentNode = root
-        for ctxIndex in context {
+        for ctxIndex in contextIndices {
+            // Ensure context index is valid
             if let alphabetSize = alphabetSize {
-                guard ctxIndex >= 0 && ctxIndex < alphabetSize else { return } // Validate context index
-            } else {
+                guard ctxIndex >= 0 && ctxIndex < alphabetSize else { return }
+            }
+            
+            // Ensure capacity if alphabet size is dynamic
+            if alphabetSize == nil {
                 currentNode.ensureCapacity(for: ctxIndex)
             }
-
+            
+            // Traverse or create the next node
             if currentNode.children[ctxIndex] == nil {
                 currentNode.children[ctxIndex] = Node(alphabetSize: alphabetSize)
             }
             currentNode = currentNode.children[ctxIndex]!
         }
-
+        
+        // Insert the symbol at the final node
         if alphabetSize == nil {
             currentNode.ensureCapacity(for: symbolIndex)
         }
         currentNode.frequencies[symbolIndex] += 1
     }
 
+
     func getFrequency(symbol: Character, context: [Character]) -> Int {
+        // Convert symbol to its index
         guard let symbolScalar = symbol.unicodeScalars.first?.value else { return 0 }
         let symbolIndex = Int(symbolScalar - baseScalarValue)
+        
+        // Convert context characters to their indices
         let contextIndices = context.compactMap { $0.unicodeScalars.first?.value }.map { Int($0 - baseScalarValue) }
-
+        
+        // Validate symbol index
         if let alphabetSize = alphabetSize {
-            guard symbolIndex >= 0 && symbolIndex < alphabetSize else { return 0 } // Validate symbol index
+            guard symbolIndex >= 0 && symbolIndex < alphabetSize else { return 0 }
         }
-        return getFrequency(index: symbolIndex, context: contextIndices)
+        
+        // Use an iterative approach to traverse the trie
+        var currentNode = root
+        for ctxIndex in contextIndices {
+            // Ensure context index is valid and node exists
+            if let alphabetSize = alphabetSize, ctxIndex < 0 || ctxIndex >= alphabetSize {
+                return 0 // Invalid index
+            }
+            if ctxIndex >= currentNode.children.count || currentNode.children[ctxIndex] == nil {
+                return 0 // Context not found
+            }
+            currentNode = currentNode.children[ctxIndex]!
+        }
+        
+        // Return the frequency of the symbol in the final node
+        if alphabetSize == nil && symbolIndex >= currentNode.frequencies.count {
+            return 0 // Handle dynamic alphabet case
+        }
+        return currentNode.frequencies[symbolIndex]
     }
+
 
     private func getFrequency(index symbolIndex: Int, context: [Int]) -> Int {
         var currentNode = root
