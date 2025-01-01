@@ -8,13 +8,13 @@
 
 protocol Trie {
     // Insert a symbol with context
-    func insert(symbol: Character, context: [Character])
+    func insert(symbol: Character, context: [Character]) throws
 
     // Get the frequency of a symbol within a context
     func getFrequency(symbol: Character, context: [Character]) -> Int
-
-    // Get symbols in a given context
-    func getSymbols(context: [Character]) -> [Character]
+    
+    
+    func getSymbolsWithFrequencies(context: [Character]) -> [(Character, Int)]
 
     // Reset the trie
     func reset()

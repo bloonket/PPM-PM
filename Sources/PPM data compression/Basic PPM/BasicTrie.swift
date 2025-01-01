@@ -5,7 +5,12 @@
 //  Created by Pirita Minkkinen on 12/31/24.
 //
 
-class BasicTrie: Trie {
+//TODO: fix conformance and finish making this based off of pmtrie :)
+class BasicTrie {
+    func getSymbolsWithFrequencies(context: [Character]) -> [(Character, Int)] {
+        
+    }
+    
     class Node {
         var children: [Character: Node] = [:]
         var frequencies: [Character: Int] = [:]

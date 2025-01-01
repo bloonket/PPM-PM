@@ -64,12 +64,15 @@ class PPM_PM {
                 continue
             }
 
-            let symbols = trie.getSymbols(context: context)
-            guard let char = symbols.first(where: { trie.getFrequency(symbol: $0, context: context) == freq }) else {
+            let symbolsWithFrequencies = trie.getSymbolsWithFrequencies(context: context)
+
+            guard let char = symbolsWithFrequencies.first(where: { $0.1 == freq })?.0 else {
                 // Handle order -1 fallback (e.g., decode as-is or handle anomalies)
                 decoded.append("?") // Example fallback character
                 continue
             }
+            decoded.append(char)
+
 
             decoded.append(char)
             trie.insert(symbol: char, context: context)

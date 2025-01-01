@@ -90,7 +90,7 @@ class PMTrie: Trie {
         if alphabetSize == nil {
             currentNode.ensureCapacity(for: symbolIndex)
         }
-        currentNode.frequencies[symbolIndex] += 1 //
+        currentNode.frequencies[symbolIndex] += 1 //TODO: add modifier to the increase
     }
 
 
@@ -149,27 +149,38 @@ class PMTrie: Trie {
     }
 
     // Get symbols in a given context
-    func getSymbols(context: [Character]) -> [Character] {
+    func getSymbolsWithFrequencies(context: [Character]) -> [(Character, Int)] {
+        // Convert the context characters to their indices
         let contextIndices = context.compactMap { $0.unicodeScalars.first?.value }.map { Int($0 - baseScalarValue) }
         var currentNode = root
 
+        // Traverse the trie iteratively
         for ctxIndex in contextIndices {
             guard ctxIndex >= 0 else { return [] }
             if alphabetSize == nil {
                 currentNode.ensureCapacity(for: ctxIndex)
             }
             guard ctxIndex < currentNode.children.count, let childNode = currentNode.children[ctxIndex] else {
-                return []
+                return [] // Context not found
             }
             currentNode = childNode
         }
 
-        // Retrieve all symbols sorted by their frequencies
-        return currentNode.frequencies.enumerated()
-            .filter { $0.element > 0 } // Only include symbols with non-zero frequencies
-            .sorted { $0.element > $1.element } // Sort by frequency descending
-            .map { Character(UnicodeScalar($0.offset + Int(baseScalarValue))!) }
+        // Collect symbols and their frequencies
+        var symbolsWithFrequencies: [(Character, Int)] = []
+        for (index, frequency) in currentNode.frequencies.enumerated() {
+            if frequency > 0 { // Include only symbols with non-zero frequency
+                if let unicodeScalar = UnicodeScalar(index + Int(baseScalarValue)) {
+                    symbolsWithFrequencies.append((Character(unicodeScalar), frequency))
+                }
+            }
+        }
+
+        // Sort by frequency descending
+        symbolsWithFrequencies.sort { $0.1 > $1.1 }
+        return symbolsWithFrequencies
     }
+
 
     // Reset the trie
     func reset() {
