@@ -5,6 +5,7 @@
 //  Created by Pirita Minkkinen on 12/31/24.
 //
 
+//TODO: reduce sorting
 class PPM_PM {
     private let trie: PMTrie
     private let order: Int
@@ -24,17 +25,29 @@ class PPM_PM {
 
             // Backoff loop: try shorter contexts if symbol not found
             while !found {
-                let frequency = trie.getFrequency(symbol: char, context: currentContext)
-                if frequency > 0 {
-                    // Symbol found in current context
-                    encoded.append(frequency)
-                    found = true
+                if let currentNode = trie.traverse(context: currentContext) {
+                    let symbolScalar = char.unicodeScalars.first?.value ?? 0
+                    let symbolIndex = Int(symbolScalar - trie.baseScalarValue)
+                    let frequency = currentNode.frequencies[symbolIndex]
+                    if frequency > 0 {
+                        // Symbol found in current context
+                        encoded.append(frequency)
+                        found = true
+                    } else {
+                        // Emit escape symbol for the current context
+                        encoded.append(-1) // Example escape symbol
+                        if currentContext.isEmpty {
+                            // Fallback to flat order -1 model
+                            encoded.append(0) // Emit symbol index or other fallback behavior
+                            break
+                        }
+                        currentContext.removeFirst()
+                    }
                 } else {
-                    // Emit escape symbol for the current context
-                    encoded.append(-1) // Example escape symbol, could be any reserved value
+                    // Context not found
+                    encoded.append(-1)
                     if currentContext.isEmpty {
-                        // Fallback to flat order -1 model
-                        encoded.append(0) // Emit symbol index or other fallback behavior
+                        encoded.append(0)
                         break
                     }
                     currentContext.removeFirst()
@@ -50,7 +63,6 @@ class PPM_PM {
         return encoded
     }
 
-
     func decompress(encoded: [Int]) -> String {
         var context: [Character] = []
         var decoded: String = ""
@@ -64,17 +76,27 @@ class PPM_PM {
                 continue
             }
 
-            let symbolsWithFrequencies = trie.getSymbolsWithFrequencies(context: context)
+            guard let currentNode = trie.traverse(context: context) else {
+                decoded.append("?") // Handle anomalies
+                continue
+            }
+
+            // Retrieve symbols and frequencies from the current node
+            let symbolsWithFrequencies: [(Character, Int)] = currentNode.frequencies.enumerated()
+                .filter { $0.element > 0 }
+                .sorted { $0.element > $1.element }
+                .compactMap { (index: Int, frequency: Int) -> (Character, Int)? in
+                    guard let unicodeScalar = UnicodeScalar(index + Int(trie.baseScalarValue)) else { return nil }
+                    return (Character(unicodeScalar), frequency)
+                }
+
 
             guard let char = symbolsWithFrequencies.first(where: { $0.1 == freq })?.0 else {
-                // Handle order -1 fallback (e.g., decode as-is or handle anomalies)
-                decoded.append("?") // Example fallback character
+                decoded.append("?") // Handle anomalies
                 continue
             }
             decoded.append(char)
 
-
-            decoded.append(char)
             trie.insert(symbol: char, context: context)
             if context.count == order {
                 context.removeFirst()

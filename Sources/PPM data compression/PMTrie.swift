@@ -11,7 +11,7 @@ class PMTrie: Trie {
 
     private let root: PMNode
     private let alphabetSize: Int?
-    private let baseScalarValue: UInt32
+    let baseScalarValue: UInt32
 
     init(scalarRange: ClosedRange<UnicodeScalar>? = nil) {
         if let scalarRange = scalarRange {
