@@ -8,7 +8,7 @@
 //TODO: check the approach for any lenght operations
 class PMTrie: Trie {
 
-    private let root: Node
+    private let root: PMNode
     private let alphabetSize: Int?
     private let baseScalarValue: UInt32
 
@@ -20,9 +20,29 @@ class PMTrie: Trie {
             self.alphabetSize = nil
             self.baseScalarValue = 0 // Default or handle dynamically later
         }
-        self.root = Node(alphabetSize: alphabetSize)
+        self.root = PMNode(alphabetSize: alphabetSize)
     }
 
+    func traverse(context: [Character]) -> PMNode? {
+        let contextIndices = context.compactMap { $0.unicodeScalars.first?.value }.map { Int($0 - baseScalarValue) }
+        var currentNode = root
+
+        for ctxIndex in contextIndices {
+            if ctxIndex < 0 || (alphabetSize != nil && ctxIndex >= alphabetSize!) {
+                return nil // Invalid context index
+            }
+
+            if ctxIndex >= currentNode.children.count || currentNode.children[ctxIndex] == nil {
+                return nil // Context not found
+            }
+
+            currentNode = currentNode.children[ctxIndex]!
+        }
+
+        return currentNode
+    }
+
+    
     func insert(symbol: Character, context: [Character]) throws {
         // Convert the symbol to its index
         guard let symbolScalar = symbol.unicodeScalars.first?.value else {
@@ -52,7 +72,7 @@ class PMTrie: Trie {
             }
 
             if currentNode.children[ctxIndex] == nil {
-                currentNode.children[ctxIndex] = Node(alphabetSize: alphabetSize)
+                currentNode.children[ctxIndex] = PMNode(alphabetSize: alphabetSize)
             }
             currentNode = currentNode.children[ctxIndex]!
         }
@@ -161,118 +181,6 @@ class PMTrie: Trie {
 
 //TODO: Consider location of this class
 //MARK: - Node of the PMTrie
-private class Node {
-    var topFrequency: Int = 0
-    var bottomFrequency: Int = 0
-    var consideredCount: Int = 0
-    var dropOffThreshold: Int = 5 // Start with a reasonable value
-    //TODO: review if this is needed/good
-    var starterPhase: Bool = true // Indicates if we're in the initial reduction phase
-
-    var children: [Node?]
-    var frequencies: [Int]
-    var modifiers: [Int]
-    var isConsidered: [Bool] // Tracks if a symbol is "likely"
-
-    init(alphabetSize: Int?) {
-        if let alphabetSize = alphabetSize {
-            // Pre-allocate arrays for known alphabet size
-            self.children = Array<Node?>(repeating: nil, count: alphabetSize)
-            self.frequencies = Array<Int>(repeating: 0, count: alphabetSize)
-            self.modifiers = Array<Int>(repeating: 0, count: alphabetSize)
-            self.isConsidered = Array<Bool>(repeating: true, count: alphabetSize)
-        } else {
-            // Use empty arrays for unknown alphabet size
-            self.children = []
-            self.frequencies = []
-            self.modifiers = []
-            self.isConsidered = []
-
-        }
-    }
-
-    func ensureCapacity(for index: Int) {
-        // Dynamically resize children and frequencies if needed
-        if index >= children.count {
-            let newSize = max(index + 1, children.count * 2) // Double size for efficiency
-            children.append(contentsOf: Array<Node?>(repeating: nil, count: newSize - children.count))
-            frequencies.append(contentsOf: Array<Int>(repeating: 0, count: newSize - frequencies.count))
-        }
-    }
-    
-    
-    
-    func updateFrequency(index: Int, increment: Int) {
-        // Update frequency
-        frequencies[index] += increment
-        
-        // Update topFrequency and bottomFrequency
-        if frequencies[index] > topFrequency {
-            topFrequency = frequencies[index]
-        }
-        if isConsidered[index], frequencies[index] < bottomFrequency {
-            bottomFrequency = frequencies[index]
-        }
-        
-        // Update isConsidered for this index
-        isConsidered[index] = frequencies[index] >= topFrequency - dropOffThreshold
-        
-        if starterPhase {
-            handleStarterPhase()
-        } else {
-            // Adjust dropOffThreshold dynamically (standard logic)
-            adjustThreshold()
-        }
-    }
-    
-    func handleStarterPhase() {
-        // Set consideredCount to half the total symbols after the first addition
-        if consideredCount == 0 {
-            consideredCount = frequencies.count / 2
-        } else {
-            // Gradually reduce consideredCount by halving
-            consideredCount = max(1, consideredCount / 2)
-        }
-        
-        // Update isConsidered flags
-        for (index, frequency) in frequencies.enumerated() {
-            isConsidered[index] = frequency >= topFrequency - dropOffThreshold && consideredCount > 0
-            if isConsidered[index] { consideredCount -= 1 }
-        }
-
-        // Exit the initial phase once consideredCount stabilizes or grows
-        if consideredCount > frequencies.filter({ $0 > 0 }).count {
-            starterPhase = false
-        }
-    }
-    
-    func adjustThreshold() {
-        let currentlyConsidered = isConsidered.filter { $0 }.count
-
-        // Too many symbols considered -> tighten threshold
-        if currentlyConsidered > consideredCount {
-            dropOffThreshold += 1
-        }
-        
-        // Too few symbols considered -> loosen threshold
-        else if currentlyConsidered < consideredCount && dropOffThreshold > 1 {
-            dropOffThreshold -= 1
-        }
-        
-        // Update consideredCount to reflect current state
-        consideredCount = currentlyConsidered
-    }
-
-    //TODO: make this
-    func promoteSymbol(at index: Int){
-        print("Symbol at \(index) needs to be promoted" )
-    }
-    
-    func reset() {
-        children.removeAll()
-        frequencies.removeAll()
-    }
-}
 
 enum PMTrieError: Error {
     case invalidSymbol(Character)
