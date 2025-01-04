@@ -6,6 +6,7 @@
 //
 
 //TODO: check the approach for any lenght operations
+//TODO: check naming, possibly specify some names like currentNode :)
 class PMTrie: Trie {
 
     private let root: PMNode
@@ -23,7 +24,7 @@ class PMTrie: Trie {
         self.root = PMNode(alphabetSize: alphabetSize)
     }
 
-    func traverse(context: [Character]) -> PMNode? {
+    func traverse(context: [Character], modificationEnabled: Bool = false) -> PMNode? {
         let contextIndices = context.compactMap { $0.unicodeScalars.first?.value }.map { Int($0 - baseScalarValue) }
         var currentNode = root
 
@@ -32,8 +33,14 @@ class PMTrie: Trie {
                 return nil // Invalid context index
             }
 
-            if ctxIndex >= currentNode.children.count || currentNode.children[ctxIndex] == nil {
-                return nil // Context not found
+            if currentNode.children[ctxIndex] == nil {
+                //create new node if missing
+               currentNode.children[ctxIndex] = PMNode(alphabetSize: alphabetSize)
+            }
+
+            if modificationEnabled {
+                // Trigger frequency update for the current child
+                currentNode.updateFrequency(index: ctxIndex)
             }
 
             currentNode = currentNode.children[ctxIndex]!
@@ -41,6 +48,8 @@ class PMTrie: Trie {
 
         return currentNode
     }
+
+
 
     
     func insert(symbol: Character, context: [Character]) throws {
@@ -60,23 +69,11 @@ class PMTrie: Trie {
             }
         }
         
-        // Iterative insertion logic (as per earlier implementation)
-        var currentNode = root
-        for ctxIndex in contextIndices {
-            if let alphabetSize = alphabetSize {
-                guard ctxIndex >= 0 && ctxIndex < alphabetSize else {
-                    throw PMTrieError.invalidContext(context) // Throw error for invalid context index
-                }
-            } else {
-                currentNode.ensureCapacity(for: ctxIndex)
-            }
-
-            if currentNode.children[ctxIndex] == nil {
-                currentNode.children[ctxIndex] = PMNode(alphabetSize: alphabetSize)
-            }
-            currentNode = currentNode.children[ctxIndex]!
+        //Traverse the context
+        guard let currentNode = traverse(context: context) else {
+                throw PMTrieError.invalidContext(context)
         }
-
+        
         if alphabetSize == nil {
             currentNode.ensureCapacity(for: symbolIndex)
         }
@@ -98,17 +95,9 @@ class PMTrie: Trie {
             guard symbolIndex >= 0 && symbolIndex < alphabetSize else { return 0 }
         }
         
-        // Use an iterative approach to traverse the trie
-        var currentNode = root
-        for ctxIndex in contextIndices {
-            // Ensure context index is valid and node exists
-            if let alphabetSize = alphabetSize, ctxIndex < 0 || ctxIndex >= alphabetSize {
-                return 0 // Invalid index
-            }
-            if ctxIndex >= currentNode.children.count || currentNode.children[ctxIndex] == nil {
+        //Traverse the tree
+        guard let currentNode = traverse(context: context) else {
                 return 0 // Context not found
-            }
-            currentNode = currentNode.children[ctxIndex]!
         }
         
         // Return the frequency of the symbol in the final node
@@ -121,17 +110,9 @@ class PMTrie: Trie {
     
 
     private func getFrequency(index symbolIndex: Int, context: [Int]) -> Int {
-        var currentNode = root
-        for ctxIndex in context {
-            guard ctxIndex >= 0 else { return 0 }
-            if alphabetSize == nil {
-                currentNode.ensureCapacity(for: ctxIndex)
-            }
-            guard ctxIndex < currentNode.children.count, let childNode = currentNode.children[ctxIndex] else {
+        guard let currentNode = traverse(context: context.map { Character(UnicodeScalar($0 + Int(baseScalarValue))!) }) else {
                 return 0
             }
-            currentNode = childNode
-        }
 
         if alphabetSize == nil {
             currentNode.ensureCapacity(for: symbolIndex)

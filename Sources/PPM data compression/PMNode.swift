@@ -5,7 +5,7 @@
 //  Created by Pirita Minkkinen on 1/4/25.
 //
 
-private class PMNode {
+class PMNode {
     var topFrequency: Int = 0
     var bottomFrequency: Int = 0
     var consideredCount: Int = 0
@@ -46,9 +46,9 @@ private class PMNode {
     
     
     
-    func updateFrequency(index: Int, increment: Int) {
+    func updateFrequency(index: Int) {
         // Update frequency
-        frequencies[index] += increment
+        frequencies[index] += 1 //TODO: change the default value to more calculated one
         
         // Update topFrequency and bottomFrequency
         if frequencies[index] > topFrequency {
